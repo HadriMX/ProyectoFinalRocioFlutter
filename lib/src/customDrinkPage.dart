@@ -8,21 +8,27 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 
 import 'models/bebida.dart';
+import 'models/historialConsumo.dart';
 import 'models/tamanoBebida.dart';
 
 class CustomDrinkPage extends StatefulWidget {
   static const routeName = '/customDrink';
   final int idSaborSeleccionado;
   final int idTamanoSeleccionado;
+  final int idCliente;
 
-  CustomDrinkPage(
-      {Key key, this.idSaborSeleccionado, this.idTamanoSeleccionado})
-      : super(key: key);
+  CustomDrinkPage({
+    Key key,
+    this.idSaborSeleccionado,
+    this.idTamanoSeleccionado,
+    this.idCliente,
+  }) : super(key: key);
 
   @override
   _CustomDrinkPageState createState() => _CustomDrinkPageState(
       selectedIdSabor: idSaborSeleccionado,
-      selectedIdTamano: idTamanoSeleccionado);
+      selectedIdTamano: idTamanoSeleccionado,
+      idCliente: idCliente);
 }
 
 class _CustomDrinkPageState extends State<CustomDrinkPage> {
@@ -136,24 +142,6 @@ class _CustomDrinkPageState extends State<CustomDrinkPage> {
     });
   }
 
-  // Create the List of devices to be shown in Dropdown Menu
-  List<DropdownMenuItem<BluetoothDevice>> _getDeviceItems() {
-    List<DropdownMenuItem<BluetoothDevice>> items = [];
-    if (_devicesList.isEmpty) {
-      items.add(DropdownMenuItem(
-        child: Text('NONE'),
-      ));
-    } else {
-      _devicesList.forEach((device) {
-        items.add(DropdownMenuItem(
-          child: Text(device.name),
-          value: device,
-        ));
-      });
-    }
-    return items;
-  }
-
   // Method to connect to bluetooth
   Future _connect() async {
     setState(() {
@@ -177,11 +165,16 @@ class _CustomDrinkPageState extends State<CustomDrinkPage> {
 
             if (incoming.contains('.')) {
               print('Exito');
-
               waiting = false;
+
+              insertarHistorialConsumo(HistorialConsumo(
+                fecha: DateTime.now(),
+                idCliente: idCliente,
+                idBebida: selectedIdSabor,
+                idTamano: selectedIdTamano,
+              ));
             } else if (incoming.contains('-')) {
               print('Error');
-
               waiting = false;
             }
           }).onDone(() {
@@ -246,12 +239,17 @@ class _CustomDrinkPageState extends State<CustomDrinkPage> {
 
   var selectedIdSabor = 1;
   var selectedIdTamano = 1;
+  var idCliente = 0;
   List<Bebida> _bebidas = [];
   List<TamanoBebida> _tamanos = [];
   List<DropdownMenuItem> bebidasItems = [];
   List<DropdownMenuItem> tamanosItems = [];
 
-  _CustomDrinkPageState({this.selectedIdSabor, this.selectedIdTamano});
+  _CustomDrinkPageState({
+    this.selectedIdSabor,
+    this.selectedIdTamano,
+    this.idCliente,
+  });
 
   Future getBebidas() async {
     final response = await http.get('https://192.168.0.10:5001/api/bebidas');
@@ -361,9 +359,7 @@ class _CustomDrinkPageState extends State<CustomDrinkPage> {
     print(selectedIdTamano);
 
     _device = _devicesList.firstWhere((x) => x.address == '14:41:13:05:89:F3');
-
     await _connect();
-
     await _sendOnMessageToBluetooth(selectedIdSabor, selectedIdTamano);
   }
 
@@ -394,5 +390,28 @@ class _CustomDrinkPageState extends State<CustomDrinkPage> {
         );
       },
     );
+  }
+
+  Future<int> insertarHistorialConsumo(
+      HistorialConsumo historialConsumo) async {
+    final http.Response response = await http.post(
+      'https://192.168.0.10:5001/api/HistorialConsumo',
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(<String, dynamic>{
+        'idHistorial': 0,
+        'idCliente': historialConsumo.idCliente,
+        'idBebida': historialConsumo.idBebida,
+        'idTamano': historialConsumo.idTamano,
+        'fecha': historialConsumo.fecha.toIso8601String(),
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body)['idHistorial'];
+    } else {
+      throw Exception('Failed to create resource.');
+    }
   }
 }

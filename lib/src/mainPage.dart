@@ -91,6 +91,7 @@ class _MainPageState extends State<MainPage> {
                                       bebidaLista.sabor.idBebida,
                                   idTamanoSeleccionado:
                                       bebidaLista.tamano?.idTamano,
+                                  idCliente: currentUser.id,
                                 ),
                               ),
                             );

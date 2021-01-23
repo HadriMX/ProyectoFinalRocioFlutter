@@ -85,16 +85,6 @@ class _LoginPageState extends State<LoginPage> {
                     );
                   },
                 ),
-                RaisedButton(
-                  child: Text('Bluetooth'),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => BluetoothPage(),
-                      ),
-                    );
-                  },
-                ),
               ],
             ),
           ),
